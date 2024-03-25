@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Log</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        #modelLogTable {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        #modelLogTable th, #modelLogTable td {
+            border: 1px solid #dddddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        #modelLogTable th {
+            background-color: #f2f2f2;
+        }
+
+        #reloadButton {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #reloadButton:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Model Log</h1>
+    <button id="reloadButton">Reload Model Log</button>
+    <table id="modelLogTable" class="custom_table">
+        <thead>
+            <tr>
+                <th>Model Name</th>
+                <th>Train Accuracy</th>
+                <th>Test Accuracy</th>
+                <th>Classification Report</th>
+                <th>Confusion Matrix</th>
+                <th>Train/Test Data</th>
+                <!-- Add more table headers as needed -->
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Table body will be populated dynamically -->
+        </tbody>
+    </table>
+
+    <script>
+        document.getElementById("reloadButton").addEventListener("click", function() {
+            fetch("/reload_model_log")
+                .then(response => response.json())
+                .then(data => {
+                    let modelLogTableBody = document.getElementById("modelLogTable").getElementsByTagName('tbody')[0];
+                    modelLogTableBody.innerHTML = '';
+                    Object.values(data).forEach(entry => {
+                        let row = modelLogTableBody.insertRow();
+                        row.insertCell().textContent = entry.model_name;
+                        row.insertCell().textContent = entry.train_accuracy;
+                        row.insertCell().textContent = entry.test_accuracy;
+
+                        //#region classification report table
+                        // Insert the classification report as a nested table
+                        let classificationReportCell = row.insertCell();
+                        let classificationReportTable = document.createElement('table');
+                        classificationReportTable.classList.add('custom_table'); // Add the table class to the dynamically created table
+                        let classificationReportData = entry.classification_report;
+
+                        // Split the classification report data into lines
+                        let reportLines = classificationReportData.split('\n');
+
+                        // Create thead element
+                        let thead = document.createElement('thead');
+                        let classheaderRow = document.createElement('tr');
+
+                        // Add headers
+                        reportLines[0].split(/\s+/).forEach(cell => {
+                            let headerCell = document.createElement('th');
+                            headerCell.textContent = cell;
+                            classheaderRow.appendChild(headerCell);
+                        });
+
+                        // Append header row to thead
+                        thead.appendChild(classheaderRow);
+
+                        // Append thead to the table
+                        classificationReportTable.appendChild(thead);
+
+                        // Add data rows
+                        reportLines.slice(2, -5).forEach(line => {
+                            let reportRow = classificationReportTable.insertRow();
+                            line.trim().split(/\s+/).forEach(cell => {
+                                let reportCell = reportRow.insertCell();
+                                reportCell.textContent = cell;
+                            });
+                        });
+
+                        classificationReportCell.appendChild(classificationReportTable);
+                        //#endregion
+
+                        
+
+                        //#region confusion matrix
+                        // Insert the confusion matrix as a nested table
+                        let confusionMatrixCell = row.insertCell();
+                        let confusionMatrixTable = document.createElement('table');
+                        confusionMatrixTable.classList.add('custom_table');
+                        let confusionMatrixData = entry.confusion_matrix;
+
+                        // Add headers
+                        let headerRow = confusionMatrixTable.insertRow();
+                        headerRow.insertCell(); // Empty cell for corner
+                        confusionMatrixData[0].forEach((val, i) => {
+                            let headerCell = document.createElement('th');
+                            headerCell.textContent = i; // Header from predicted classes
+                            headerRow.appendChild(headerCell);
+                        });
+
+                        // Add data rows
+                        confusionMatrixData.forEach((row, i) => {
+                            let matrixRow = confusionMatrixTable.insertRow();
+                            let rowHeaderCell = matrixRow.insertCell();
+                            rowHeaderCell.textContent = i; // Row header from actual classes
+                            row.forEach(val => {
+                                let matrixCell = matrixRow.insertCell();
+                                matrixCell.textContent = val;
+                            });
+                        });
+                        confusionMatrixCell.appendChild(confusionMatrixTable);
+                        //#endregion
+
+                        //#region link to data
+                        var dataTrained = entry.data_trained;
+                        var link = document.createElement('a');
+                        link.href = `/data/${encodeURIComponent(dataTrained)}`; // Use relative URL
+                        link.textContent = dataTrained;
+                        link.addEventListener('click', function(event) {
+                            event.preventDefault(); // Prevent the default behavior of navigating to the link
+                            fetch(`/download?file_name=${encodeURIComponent(dataTrained)}`) // Encode file name to handle special characters
+                                .then(response => response.blob())
+                                .then(blob => {
+                                    // Create a URL for the blob object
+                                    var url = window.URL.createObjectURL(blob);
+                                    // Create a temporary anchor element to trigger the download
+                                    var a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = dataTrained; // Set the download attribute to the file name
+                                    document.body.appendChild(a); // Append anchor to the document
+                                    a.click(); // Trigger the click event to initiate download
+                                    document.body.removeChild(a); // Remove anchor from the document
+                                    window.URL.revokeObjectURL(url); // Revoke the URL object
+                                })
+                                .catch(error => console.error('Error downloading file:', error));
+                        });
+                        row.insertCell().appendChild(link);
+                        //#endregion
+                    });
+                });
+        });
+    </script>
+</body>
+</html>
+</body>
+</html>

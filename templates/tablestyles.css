@@ -1,0 +1,30 @@
+/* Style for the whole custom_table */
+.custom_table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 2px solid #ddd; /* Add border to the whole custom_table */
+}
+
+/* Style for custom_table headers */
+.custom_table th {
+    background-color: #f2f2f2; /* Light gray background */
+    border: 1px solid #ddd; /* Add border */
+    padding: 8px;
+    text-align: left;
+}
+
+/* Style for custom_table data */
+.custom_table td {
+    border: 1px solid #ddd; /* Add border */
+    padding: 8px;
+}
+
+/* Alternate row background color */
+.custom_table tr:nth-child(even) {
+    background-color: #f9f9f9; /* Light gray background for even rows */
+}
+
+/* Hover effect */
+.custom_table tr:hover {
+    background-color: #f2f2f2; /* Darker background color on hover */
+}
